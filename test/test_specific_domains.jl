@@ -19,7 +19,7 @@ end
         d1 = EmptySpace()
         show(io,d1)
         @test isempty(d1)
-        @test String(take!(io)) == "the empty space with eltype Float64"
+        @test String(take!(io)) == "{} (empty domain)"
         @test eltype(d1) == Float64
         @test 0.5 ∉ d1
         @test d1 ∩ d1 == d1
@@ -39,7 +39,7 @@ end
     @testset "full space" begin
         d1 = FullSpace{Float64}()
         show(io,d1)
-        @test String(take!(io)) == "the full space with eltype Float64"
+            @test String(take!(io)) == "{x} (full space)"
         @test 0.5 ∈ d1
         @test d1 ∪ d1 == d1
         @test d1 ∩ d1 == d1
@@ -108,6 +108,10 @@ end
             @test minimum(d) == infimum(d) == leftendpoint(d)
             @test maximum(d) == supremum(d) == rightendpoint(d)
 
+            @test d ∩ d === d
+            @test d ∪ d === d
+            @test d \ d === EmptySpace{T}()
+
             @test isclosed(d)
             @test !DomainSets.isopen(d)
             @test iscompact(d)
@@ -128,6 +132,16 @@ end
             @test rightendpoint(d) == one(T)
             @test minimum(d) == infimum(d) == leftendpoint(d)
             @test maximum(d) == supremum(d) == rightendpoint(d)
+
+            @test d ∩ d === d
+            @test d ∪ d === d
+            @test d \ d === EmptySpace{T}()
+            unit = UnitInterval{T}()
+            @test d ∩ unit === unit
+            @test unit ∩ d === unit
+            @test d ∪ unit === d
+            @test unit ∪ d === d
+            @test unit \ d === EmptySpace{T}()
 
             @test isclosed(d)
             @test !DomainSets.isopen(d)
@@ -151,6 +165,19 @@ end
             @test supremum(d) == rightendpoint(d)
             @test_throws ArgumentError maximum(d)
 
+            @test d ∩ d === d
+            @test d ∪ d === d
+            @test d \ d == EmptySpace{T}()
+            unit = UnitInterval{T}()
+            cheb = ChebyshevInterval{T}()
+            @test d ∩ unit === unit
+            @test unit ∩ d === unit
+            @test d ∩ cheb === unit
+            @test cheb ∩ d === unit
+            @test d ∪ unit === d
+            @test unit ∪ d === d
+            @test unit \ d === EmptySpace{T}()
+
             @test !isclosed(d)
             @test !DomainSets.isopen(d)
             @test !iscompact(d)
@@ -171,6 +198,24 @@ end
             @test supremum(d) == rightendpoint(d)
             @test_throws ArgumentError minimum(d)
             @test_throws ArgumentError maximum(d)
+
+            @test d ∩ d === d
+            @test d ∪ d === d
+            @test d \ d == EmptySpace{T}()
+            unit = UnitInterval{T}()
+            cheb = ChebyshevInterval{T}()
+            halfline = HalfLine{T}()
+            @test unit ∩ d === EmptySpace{T}()
+            @test d ∩ unit === EmptySpace{T}()
+            @test d ∩ halfline === EmptySpace{T}()
+            @test halfline ∩ d === EmptySpace{T}()
+            @test d ∪ halfline === FullSpace{T}()
+            @test halfline ∪ d === FullSpace{T}()
+            @test unit \ d === unit
+            @test cheb \ d === unit
+            @test halfline \ d === halfline
+            @test d \ unit === d
+            @test d \ halfline === d
 
             @test !isclosed(d)
             @test DomainSets.isopen(d)
@@ -512,6 +557,12 @@ end
         @test approx_in(v[1.,0.], C)
         @test !approx_in(v[1.,1.], C)
         @test !isempty(C)
+        p = parameterization(C)
+        x = applymap(p, 1/2)
+        @test DomainSets.domain(p) == Interval{:closed,:open,Float64}(0, 1)
+        @test approx_in(x, C)
+        q = left_inverse(p)
+        @test applymap(q, x) ≈ 1/2
 
         C = 2UnitCircle() + v[1.,1.]
         @test approx_in(v[3.,1.], C)
